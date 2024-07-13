@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind utilities;
+@tailwind components;
+
+html,
+body,
+:root {
+  height: 100%;
+  background-color: black;
+  overflow: hidden;
+}
+
+@font-face {
+  font-family: "developer";
+  src: url("./fonts/quicksand.otf");
+}
