@@ -1,27 +1,40 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useContext } from "react";
 import { BsEraserFill } from "react-icons/bs";
 import { MdDelete } from "react-icons/md";
+import { io } from "socket.io-client";
+import { SocketContext } from "../context/socket";
 
-export default function Game() {
+export default function Game({ roomState, setRoomState }) {
+  const socket = useContext(SocketContext);
+  const [notifs, setNotifs] = useState([{ message: "you joined", index: 0 }]);
+
+  useEffect(() => {
+    socket.on("update", (data) => {
+      data.notif.index = notifs.length;
+      setRoomState(data.roomData);
+      setNotifs((prevState) => [...prevState, data.notif]);
+    });
+  }, [socket]);
+
   return (
-    <div className="h-[dvh] flex flex-col">
+    <div className="h-[100dvh] flex flex-col ">
       <div className="w-full">
         <Canvas></Canvas>
       </div>
 
-      <div className="flex flex-1 justify-between">
-        <PlayersList></PlayersList>
-        <GuessAndChat></GuessAndChat>
+      <div className="flex justify-between h-full border-2">
+        <PlayersList roomState={roomState}></PlayersList>
+        <GuessAndChat notifs={notifs}></GuessAndChat>
       </div>
     </div>
   );
 }
 
-function PlayersList() {
+function PlayersList({ roomState }) {
   return (
     <div className="min-w-fit w-[5%] flex flex-col justify-end pb-3 mr-5 pl-5">
-      {roomData.players.map((item) => (
-        <Player player={item}></Player>
+      {roomState.players.map((item) => (
+        <Player player={item} key={item.id}></Player>
       ))}
     </div>
   );
@@ -29,7 +42,7 @@ function PlayersList() {
 function Player({ player }) {
   return (
     <div className="flex justify-between">
-      <span className="text-green-500">{player.name}</span>
+      <span className="text-green-500">{player.username}</span>
       <span className="ml-3 text-yellow-400">{player.score} pnts</span>
     </div>
   );
@@ -140,7 +153,7 @@ function Canvas() {
         onMouseDown={startDrawing}
         onMouseUp={stopDrawing}
         onMouseMove={draw}
-        className="bg-slate-950 w-full h-[450px] overflow-hidden"
+        className="bg-slate-950 w-full h-[450px] overflow-hidden text-green-500"
       ></canvas>
 
       <ColorPicker
@@ -153,19 +166,25 @@ function Canvas() {
   );
 }
 
-function GuessAndChat() {
+function GuessAndChat({ notifs }) {
   return (
-    <div className="w-full h-full flex flex-col justify-end max-w-[500px]">
-      <div className="h-12 ">
-        <form className="flex justify-between items-center p-3">
-          <input
-            type="text"
-            className="outline-none bg-black text-green-500 placeholder:text-green-700 w-full"
-            placeholder="guess/chat"
-          />
-          <button className="text-green-500">.</button>
-        </form>
+    <div className="w-full h-full flex flex-col justify-between max-w-[800px] ">
+      <div className="h-full p-3">
+        {notifs.map((item) => (
+          <Notification
+            message={item.message}
+            key={item.message}
+          ></Notification>
+        ))}
       </div>
+      <form className="h-12  flex justify-between items-center p-3">
+        <input
+          type="text"
+          className="outline-none bg-black text-green-500 placeholder:text-green-700 w-full"
+          placeholder="guess/chat"
+        />
+        <button className="text-green-500">.</button>
+      </form>
     </div>
   );
 }
@@ -276,6 +295,14 @@ function ColorPicker({ setColor, clearCanvas, setIsEraser, setBrushWidth }) {
       >
         <div className="h-6 w-6 rounded-full bg-green-500"></div>
       </div>
+    </div>
+  );
+}
+
+function Notification({ message }) {
+  return (
+    <div className="">
+      <span className="text-yellow-500 italic">{message}</span>
     </div>
   );
 }
