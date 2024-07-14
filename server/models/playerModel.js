@@ -13,6 +13,10 @@ export const playerSchema = new mongoose.Schema({
     type: Boolean,
     required: true,
   },
+  socketId: {
+    type: String,
+    required: true,
+  },
 });
 
 export const Player = mongoose.model("Player", playerSchema);

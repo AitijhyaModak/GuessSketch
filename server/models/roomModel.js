@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { playerSchema } from "./playerModel";
+import { playerSchema } from "./playerModel.js";
 
 export const roomSchema = new mongoose.Schema({
   name: {
@@ -18,15 +18,14 @@ export const roomSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  players: [playerSchema],
-  scores: {
+  rounds: {
     type: Number,
     required: true,
   },
-  players: {
-    type: [playerSchema],
-    required: true,
-  },
+  players: [playerSchema],
+  turn: playerSchema,
+  turnIndex: Number,
+  currentRound: Number,
 });
 
 export const Room = mongoose.model("Room", roomSchema);
