@@ -17,7 +17,6 @@ export default function Canvas({ roomState }) {
     const rect = canvasRef.current.getBoundingClientRect();
     if (drawerCtx) {
       socket.on("start-drawing", (data) => {
-        console.log(drawerCtx);
         drawerCtx.beginPath();
         drawerCtx.moveTo(
           data.x * rect.width - rect.left,
@@ -45,12 +44,9 @@ export default function Canvas({ roomState }) {
       });
 
       socket.on("clear-canvas", () => {
-        drawerCtx.clearRect(
-          0,
-          0,
-          canvasRef.current.width,
-          canvasRef.current.height
-        );
+        const canvas = canvasRef.current;
+        console.log(canvas);
+        drawerCtx.clearRect(0, 0, canvas.width, canvas.height);
       });
     }
   }, [drawerCtx, socket]);
@@ -165,7 +161,7 @@ export default function Canvas({ roomState }) {
   }
 
   return (
-    <div className="w-full h-fit relative border-2">
+    <div className="w-full h-fit">
       <canvas
         ref={canvasRef}
         id="canvas"

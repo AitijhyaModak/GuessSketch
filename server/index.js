@@ -102,13 +102,15 @@ io.on("connection", (socket) => {
 
         await room.save();
 
-        socket.nsp.to(room.name).emit("update-start-game", {
-          roomData: room,
-          notif1: { message: "game has started", type: "imp-notif" },
-          notif2: {
-            messgae: `${room.players[0]} is guessing`,
-            type: "imp-notif",
-          },
+        socket.nsp.to(room.name).emit("update-start-game", { roomData: room });
+
+        socket.nsp
+          .to(room.name)
+          .emit("notif", { message: "game has started", type: "imp-notif" });
+
+        socket.nsp.to(room.name).emit("notif", {
+          message: `${room.players[0].username} is drawing`,
+          type: "imp-notif",
         });
       }
     } catch (err) {
@@ -143,6 +145,24 @@ io.on("connection", (socket) => {
 
   socket.on("clear-canvas", (data) => {
     socket.to(data.roomName).emit("clear-canvas", data);
+  });
+
+  socket.on("time-finish", async (data) => {
+    socket.to(data.roomName).emit("notif", {
+      message: `the word was ${data.word}`,
+      type: "imp-notif",
+    });
+    const room = await Room.findOne({ name: data.roomName });
+    room.turnIndex = room.turnIndex + 1;
+    room.currentWord = getWord();
+
+    socket.nsp.to(data.roomName).emit("notif", {
+      message: `${room.players[room.turnIndex].username} is drawing the word`,
+      type: "imp-notif",
+    });
+
+    await room.save();
+    socket.nsp.to(data.roomName).emit("update-room", { roomData: room });
   });
 
   socket.on("disconnect", () => {

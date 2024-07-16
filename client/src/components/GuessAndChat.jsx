@@ -93,5 +93,5 @@ function Notification({ notif }) {
     }
   }
 
-  return <div className="text-wrap">{handleNotif()}</div>;
+  return <div className="text-wrap mb-2">{handleNotif()}</div>;
 }

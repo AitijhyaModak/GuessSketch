@@ -25,9 +25,11 @@ export default function Game({ roomState, setRoomState, username }) {
 
     socket.on("update-start-game", (data) => {
       setRoomState(data.roomData);
-      data.notif1.index = notifs.length;
-      data.notif2.index = notifs.length + 1;
-      setNotifs((prevState) => [...prevState, data.notif1, data.notif2]);
+      setShowWord(true);
+    });
+
+    socket.on("update-room", (data) => {
+      setRoomState(data.roomData);
       setShowWord(true);
     });
   }, [socket]);
@@ -41,6 +43,16 @@ export default function Game({ roomState, setRoomState, username }) {
           players={roomState.players}
           id={socket.id}
         ></Word>
+      )}
+
+      {showWord && (
+        <Timer
+          setShowWord={setShowWord}
+          roomName={roomState.name}
+          socket={socket}
+          word={roomState.currentWord}
+          id={roomState.players[roomState.turnIndex].socketId}
+        ></Timer>
       )}
 
       <Canvas roomState={roomState} socket={socket}></Canvas>
@@ -69,8 +81,30 @@ function Word({ word, players, turnIndex, id }) {
   }
 
   return (
-    <div className="absolute bg-white border-2 top-3 left-3 z-10 h-10 items-center flex p-3">
+    <div className="absolute bg-white top-3 left-3 z-10 h-10 items-center flex p-3">
       {handleShowWord()}
+    </div>
+  );
+}
+
+function Timer({ setShowWord, roomName, socket, id, word }) {
+  const [time, setTime] = useState(20);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (time <= 0) {
+        setShowWord(false);
+        if (socket.id == id) socket.emit("time-finish", { roomName, word });
+        return;
+      }
+      setTime(time - 1);
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [time]);
+
+  return (
+    <div className="absolute bg-white top-3 right-3 z-10 h-10 items-center flex p-3">
+      {time} s
     </div>
   );
 }
