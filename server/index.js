@@ -3,8 +3,9 @@ import { Server } from "socket.io";
 import { createServer } from "node:http";
 import mongoose from "mongoose";
 import "dotenv/config";
-import { Room } from "./models/roomModel.js";
+import { Room, roomSchema } from "./models/roomModel.js";
 import { Player } from "./models/playerModel.js";
+import { getWord } from "./words/words.js";
 
 const app = express();
 const PORT = 5000;
@@ -18,7 +19,7 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log("a user connected");
 
-  socket.on("create-room", async (senderSocketId, formData) => {
+  socket.on("create-room", async (formData) => {
     try {
       const roomExists = await Room.findOne({ name: formData.roomName });
 
@@ -30,7 +31,7 @@ io.on("connection", (socket) => {
       let room = new Room();
       let player = new Player();
 
-      player.socketId = senderSocketId;
+      player.socketId = socket.id;
       player.username = formData.playerName;
       player.isCreator = true;
       player.score = 0;
@@ -45,7 +46,7 @@ io.on("connection", (socket) => {
       await room.save();
       await socket.join(room.name);
 
-      socket.emit("success", room);
+      socket.emit("success-created-room", room);
     } catch (err) {
       console.log(err);
       socket.emit("error", "some internal error occured");
@@ -65,6 +66,11 @@ io.on("connection", (socket) => {
         return;
       }
 
+      if (room.totalPlayers === room.players.length || room.gameStarted) {
+        socket.emit("error", "room has reached full capacity");
+        return;
+      }
+
       let player = new Player();
       player.username = formData.playerName;
       player.socketId = socket.id;
@@ -76,15 +82,59 @@ io.on("connection", (socket) => {
 
       await socket.join(room.name);
 
-      socket.emit("success", room);
-      socket.to(room.name).emit("update", {
+      socket.emit("success-joined-room", room);
+
+      socket.to(room.name).emit("update-player-joined", {
         roomData: room,
-        notif: { message: `${formData.playerName} has joined the room` },
+        notif: {
+          type: "join-notif",
+          message: `${formData.playerName} has joined the room`,
+        },
       });
+
+      if (room.players.length === room.totalPlayers) {
+        room.turnIndex = 0;
+        room.gameStarted = true;
+        room.currentRound = 1;
+        room.guessed = [];
+        for (let i = 1; i <= room.totalPlayers; i++) room.guessed.push(false);
+        room.currentWord = getWord();
+
+        await room.save();
+
+        socket.nsp.to(room.name).emit("update-start-game", {
+          roomData: room,
+          notif1: { message: "game has started", type: "imp-notif" },
+          notif2: {
+            messgae: `${room.players[0]} is guessing`,
+            type: "imp-notif",
+          },
+        });
+      }
     } catch (err) {
       console.log(err);
       socket.emit("error", "some internal error occured");
     }
+  });
+
+  socket.on("notif", (data) => {
+    socket.to(data.roomName).emit("notif", {
+      message: data.message,
+      senderName: data.username,
+      type: data.type,
+    });
+  });
+
+  socket.on("start-drawing", (data) => {
+    socket.to(data.roomName).emit("start-drawing", data);
+  });
+
+  socket.on("draw", (data) => {
+    socket.to(data.roomName).emit("draw", data);
+  });
+
+  socket.on("stop-drawing", (data) => {
+    socket.to(data.roomName).emit("stop-drawing", data);
   });
 
   socket.on("disconnect", () => {

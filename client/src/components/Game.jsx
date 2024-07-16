@@ -1,30 +1,60 @@
-import { useRef, useState, useEffect, useContext } from "react";
+import { useRef, useState, useEffect, useContext, useCallback } from "react";
 import { BsEraserFill } from "react-icons/bs";
 import { MdDelete } from "react-icons/md";
 import { io } from "socket.io-client";
 import { SocketContext } from "../context/socket";
+import { AiOutlineEnter } from "react-icons/ai";
 
-export default function Game({ roomState, setRoomState }) {
+export default function Game({ roomState, setRoomState, username }) {
   const socket = useContext(SocketContext);
-  const [notifs, setNotifs] = useState([{ message: "you joined", index: 0 }]);
+  const [showWord, setShowWord] = useState(false);
+  const [notifs, setNotifs] = useState([
+    { message: "you joined", index: 0, type: "join-notif" },
+  ]);
 
   useEffect(() => {
-    socket.on("update", (data) => {
+    socket.on("update-player-joined", (data) => {
       data.notif.index = notifs.length;
       setRoomState(data.roomData);
       setNotifs((prevState) => [...prevState, data.notif]);
     });
+
+    socket.on("notif", (notif) => {
+      notif.index = notifs.length;
+      setNotifs((prevState) => [...prevState, notif]);
+    });
+
+    socket.on("update-start-game", (data) => {
+      setRoomState(data.roomData);
+      data.notif1.index = notifs.length;
+      data.notif2.index = notifs.length + 1;
+      setNotifs((prevState) => [...prevState, data.notif1, data.notif2]);
+      setShowWord(true);
+    });
   }, [socket]);
 
   return (
-    <div className="h-[100dvh] flex flex-col ">
+    <div className="h-[100dvh] flex flex-col overflow relative">
+      {showWord && (
+        <Word
+          turnIndex={roomState.turnIndex}
+          word={roomState.currentWord}
+          players={roomState.players}
+          id={socket.id}
+        ></Word>
+      )}
       <div className="w-full">
-        <Canvas></Canvas>
+        <Canvas roomState={roomState} socket={socket}></Canvas>
       </div>
 
-      <div className="flex justify-between h-full border-2">
+      <div className="flex justify-between h-full overflow-hidden">
         <PlayersList roomState={roomState}></PlayersList>
-        <GuessAndChat notifs={notifs}></GuessAndChat>
+        <GuessAndChat
+          username={username}
+          notifs={notifs}
+          setNotifs={setNotifs}
+          roomState={roomState}
+        ></GuessAndChat>
       </div>
     </div>
   );
@@ -48,25 +78,42 @@ function Player({ player }) {
   );
 }
 
-const roomData = {
-  players: [
-    { name: "John", score: 85 },
-    { name: "Emily", score: 92 },
-    { name: "David", score: 78 },
-    { name: "Sophia", score: 89 },
-    { name: "Michael", score: 91 },
-  ],
-};
-
-function Canvas() {
+function Canvas({ socket, roomState }) {
   const canvasRef = useRef(null);
   const [ctx, setCtx] = useState(null);
+  const [drawerCtx, setDrawerCtx] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState("#FFFFFF");
   const [isEraser, setIsEraser] = useState(false);
   const [brushWidth, setBrushWidth] = useState(2);
+  // const [i, setI] = useState(1);
+
+  useEffect(() => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    if (drawerCtx) {
+      socket.on("start-drawing", (data) => {
+        console.log(drawerCtx);
+        drawerCtx.beginPath();
+        drawerCtx.moveTo(data.x - rect.left, data.y - rect.top);
+      });
+
+      socket.on("draw", (data) => {
+        drawerCtx.lineTo(data.x - rect.left, data.y - rect.top);
+        drawerCtx.stroke();
+      });
+
+      socket.on("stop-drawing", (data) => {
+        drawerCtx.closePath();
+      });
+    }
+  }, [drawerCtx, socket]);
 
   function startDrawing(e) {
+    if (
+      roomState.gameStarted &&
+      socket.id != roomState.players[roomState.turnIndex].socketId
+    )
+      return;
     setIsDrawing(true);
     let x;
     let y;
@@ -79,14 +126,20 @@ function Canvas() {
     }
 
     const rect = canvasRef.current.getBoundingClientRect();
-    console.log(ctx);
     ctx.beginPath();
     ctx.moveTo(x - rect.left, y - rect.top);
+
+    socket.emit("start-drawing", { x: x, y: y, roomName: roomState.name });
     return false;
   }
 
   function draw(e) {
     if (!isDrawing) return;
+    if (
+      roomState.gameStarted &&
+      socket.id != roomState.players[roomState.turnIndex].socketId
+    )
+      return;
     const rect = canvasRef.current.getBoundingClientRect();
     let x;
     let y;
@@ -100,23 +153,32 @@ function Canvas() {
 
     ctx.lineTo(x - rect.left, y - rect.top);
     ctx.stroke();
+
+    socket.emit("draw", { x: x, y: y, roomName: roomState.name });
     return false;
   }
 
   function stopDrawing(e) {
+    if (
+      roomState.gameStarted &&
+      socket.id != roomState.players[roomState.turnIndex].socketId
+    )
+      return;
     setIsDrawing(false);
     ctx.closePath();
+    socket.emit("stop-drawing", { roomName: roomState.name });
   }
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    canvas.height = 450;
-    canvas.width = rect.right - rect.left;
+    canvas.height = 600;
+    // canvas.width = 800;
     const c = canvas.getContext("2d");
     c.strokeStyle = color;
     c.lineWidth = brushWidth;
     c.lineCap = "round";
+    setDrawerCtx(c);
     setCtx(c);
   }, []);
 
@@ -153,7 +215,8 @@ function Canvas() {
         onMouseDown={startDrawing}
         onMouseUp={stopDrawing}
         onMouseMove={draw}
-        className="bg-slate-950 w-full h-[450px] overflow-hidden text-green-500"
+        width={800}
+        className="bg-slate-950  mx-auto h-[600px] overflow-hidden text-green-500"
       ></canvas>
 
       <ColorPicker
@@ -166,24 +229,57 @@ function Canvas() {
   );
 }
 
-function GuessAndChat({ notifs }) {
+function GuessAndChat({ notifs, setNotifs, roomState, username }) {
+  const scrollRef = useRef(null);
+  const [typed, setTyped] = useState("");
+  const socket = useContext(SocketContext);
+
+  const sendMessage = (e) => {
+    e.preventDefault();
+    socket.emit("notif", {
+      roomName: roomState.name,
+      message: typed,
+      username: username,
+      type: "message-notif",
+    });
+    const notif = {
+      type: "message-notif",
+      senderName: "you",
+      message: typed,
+      index: notifs.length,
+    };
+    setNotifs((prevState) => [...prevState, notif]);
+    setTyped("");
+  };
+
+  useEffect(() => {
+    scrollRef.current.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [notifs]);
+
   return (
     <div className="w-full h-full flex flex-col justify-between max-w-[800px] ">
-      <div className="h-full p-3">
+      <div
+        ref={scrollRef}
+        className="h-full max-h-full p-3 overflow-hidden overflow-y-scroll"
+      >
         {notifs.map((item) => (
-          <Notification
-            message={item.message}
-            key={item.message}
-          ></Notification>
+          <Notification notif={item} key={item.index}></Notification>
         ))}
       </div>
-      <form className="h-12  flex justify-between items-center p-3">
+      <form className="h-12 flex items-center p-3">
         <input
+          value={typed}
+          onChange={(e) => setTyped(e.target.value)}
           type="text"
-          className="outline-none bg-black text-green-500 placeholder:text-green-700 w-full"
+          className="outline-none w-28 mr-5 bg-black text-green-500 placeholder:text-green-700"
           placeholder="guess/chat"
         />
-        <button className="text-green-500">.</button>
+        <button onClick={(e) => sendMessage(e)} className="text-green-500">
+          <AiOutlineEnter></AiOutlineEnter>
+        </button>
       </form>
     </div>
   );
@@ -299,10 +395,46 @@ function ColorPicker({ setColor, clearCanvas, setIsEraser, setBrushWidth }) {
   );
 }
 
-function Notification({ message }) {
+function Notification({ notif }) {
+  function handleNotif() {
+    switch (notif.type) {
+      case "join-notif":
+        return <span className="text-yellow-500 italic">{notif.message}</span>;
+      case "leave-notif":
+        return <span className="text-red-500 italic">{notif.message}</span>;
+      case "message-notif":
+        return (
+          <>
+            <span className="mr-2 text-blue-600 italic">
+              {notif.senderName}:
+            </span>
+            <span className="text-orange-600">{notif.message}</span>
+          </>
+        );
+      case "imp-notif":
+        return <span className="text-pink-500">{notif.message}</span>;
+
+      default:
+        return null;
+    }
+  }
+
+  return <div className="">{handleNotif()}</div>;
+}
+
+function Word({ word, players, turnIndex, id }) {
+  function handleShowWord() {
+    if (players[turnIndex].socketId !== id) {
+      let temp = "";
+      for (let i = 0; i < word.length; i++) temp += "_ ";
+      return temp;
+    }
+    return word;
+  }
+
   return (
-    <div className="">
-      <span className="text-yellow-500 italic">{message}</span>
+    <div className="absolute bg-white border-2 top-3 left-3 z-10 h-10 items-center flex p-3">
+      {handleShowWord()}
     </div>
   );
 }

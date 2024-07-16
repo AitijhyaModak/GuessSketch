@@ -23,9 +23,10 @@ export const roomSchema = new mongoose.Schema({
     required: true,
   },
   players: [playerSchema],
-  turn: playerSchema,
   turnIndex: Number,
   currentRound: Number,
+  guessed: [Boolean],
+  currentWord: String,
 });
 
 export const Room = mongoose.model("Room", roomSchema);

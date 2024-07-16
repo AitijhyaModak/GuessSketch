@@ -15,15 +15,20 @@ const emptyForm2 = {
   password: "",
 };
 
-export default function GameConfiguration({ setInRoom, setRoomState }) {
+export default function GameConfiguration({
+  setInRoom,
+  setRoomState,
+  setUsername,
+}) {
   const socket = useContext(SocketContext);
   const [formData, setFormData] = useState(emptyForm);
   const [formData2, setFormData2] = useState(emptyForm2);
 
   const handleSubmit = (e, type) => {
     e.preventDefault();
+    setUsername(formData.playerName);
     if (type === "create") {
-      socket.emit("create-room", socket.id, formData);
+      socket.emit("create-room", formData);
       setFormData(emptyForm);
     } else {
       socket.emit("join-room", {
@@ -35,30 +40,24 @@ export default function GameConfiguration({ setInRoom, setRoomState }) {
   };
 
   useEffect(() => {
-    socket.on("success", (roomData) => {
+    socket.on("success-created-room", (roomData) => {
       toast.custom((t) => (
-        <div
-          className={`bg-black text-green-500 py-4 rounded-lg px-4 opacity:60 ${
-            t.visible ? "animate-enter" : "animate-leave"
-          }`}
-        >
-          room created and joined
-        </div>
+        <SuccessToast message={"Room created and joined"} t={t}></SuccessToast>
       ));
       setInRoom(true);
       setRoomState(roomData);
     });
 
+    socket.on("success-joined-room", (roomData) => {
+      toast.custom((t) => {
+        <SuccessToast message={"Room joined"} t={t}></SuccessToast>;
+      });
+      setInRoom(true);
+      setRoomState(roomData);
+    });
+
     socket.on("error", (message) => {
-      toast.custom((t) => (
-        <div
-          className={`bg-black text-red-500 py-4 rounded-lg px-4 opacity:60 ${
-            t.visible ? "animate-enter" : "animate-leave"
-          }`}
-        >
-          {message}
-        </div>
-      ));
+      toast.custom((t) => <ErrorToast message={message} t={t}></ErrorToast>);
     });
   }, [socket]);
 
@@ -160,5 +159,29 @@ export default function GameConfiguration({ setInRoom, setRoomState }) {
         </form>
       </div>
     </>
+  );
+}
+
+function SuccessToast({ message, t }) {
+  return (
+    <div
+      className={`bg-black text-green-500 py-4 rounded-lg px-4 opacity:60 ${
+        t.visible ? "animate-enter" : "animate-leave"
+      }`}
+    >
+      Room created and joined
+    </div>
+  );
+}
+
+function ErrorToast({ message, t }) {
+  return (
+    <div
+      className={`bg-black text-red-500 py-4 rounded-lg px-4 opacity:60 ${
+        t.visible ? "animate-enter" : "animate-leave"
+      }`}
+    >
+      {message}
+    </div>
   );
 }

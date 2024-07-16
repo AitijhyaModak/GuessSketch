@@ -6,17 +6,24 @@ import { Toaster } from "react-hot-toast";
 function App() {
   const [inRoom, setInRoom] = useState(false);
   const [roomState, setRoomState] = useState({});
+  const [username, setUsername] = useState("");
+
   return (
-    <div className="font-quicksand">
+    <div className="font-quicksand h-[100dvh]">
       <Toaster toastOptions={{ duration: 1000 }}></Toaster>
       {!inRoom && (
         <GameConfiguration
+          setUsername={setUsername}
           setInRoom={setInRoom}
           setRoomState={setRoomState}
         ></GameConfiguration>
       )}
       {inRoom && (
-        <Game roomState={roomState} setRoomState={setRoomState}></Game>
+        <Game
+          username={username}
+          roomState={roomState}
+          setRoomState={setRoomState}
+        ></Game>
       )}
     </div>
   );
