@@ -7,6 +7,10 @@ export default function GuessAndChat({
   setNotifs,
   roomState,
   username,
+  didGuess,
+  setDidGuess,
+  id,
+  time,
 }) {
   const scrollRef = useRef(null);
   const [typed, setTyped] = useState("");
@@ -14,11 +18,23 @@ export default function GuessAndChat({
 
   const sendMessage = (e) => {
     e.preventDefault();
+    if (roomState.players[roomState.turnIndex].socketId === id) return;
+
+    if (!didGuess && typed.toLowerCase() === roomState.currentWord) {
+      setDidGuess(true);
+      setNotifs((prevState) => [
+        ...prevState,
+        { message: "you guessed the word !", type: "imp-notif" },
+      ]);
+    } else if (typed.toLowerCase() === roomState.currentWord) return;
+    console.log(20 - time);
     socket.emit("notif", {
       roomName: roomState.name,
       message: typed,
+      word: roomState.currentWord,
       username: username,
       type: "message-notif",
+      addScore: time * 2,
     });
     const notif = {
       type: "message-notif",

@@ -10,6 +10,8 @@ export default function Game({ roomState, setRoomState, username }) {
   const [notifs, setNotifs] = useState([
     { message: "you joined", index: 0, type: "join-notif" },
   ]);
+  const [didGuess, setDidGuess] = useState(false);
+  const [time, setTime] = useState(20);
 
   useEffect(() => {
     socket.on("update-player-joined", (data) => {
@@ -26,11 +28,18 @@ export default function Game({ roomState, setRoomState, username }) {
     socket.on("update-start-game", (data) => {
       setRoomState(data.roomData);
       setShowWord(true);
+      setTime(20);
     });
 
-    socket.on("update-room", (data) => {
+    socket.on("update-nextturn", (data) => {
       setRoomState(data.roomData);
+      setTime(20);
       setShowWord(true);
+    });
+
+    socket.on("guess-score-update", (data) => {
+      console.log(data.playersData);
+      setRoomState(data.roomData);
     });
   }, [socket]);
 
@@ -52,6 +61,8 @@ export default function Game({ roomState, setRoomState, username }) {
           socket={socket}
           word={roomState.currentWord}
           id={roomState.players[roomState.turnIndex].socketId}
+          time={time}
+          setTime={setTime}
         ></Timer>
       )}
 
@@ -62,8 +73,12 @@ export default function Game({ roomState, setRoomState, username }) {
         <GuessAndChat
           username={username}
           notifs={notifs}
+          id={socket.id}
+          time={time}
           setNotifs={setNotifs}
           roomState={roomState}
+          didGuess={didGuess}
+          setDidGuess={setDidGuess}
         ></GuessAndChat>
       </div>
     </div>
@@ -87,9 +102,7 @@ function Word({ word, players, turnIndex, id }) {
   );
 }
 
-function Timer({ setShowWord, roomName, socket, id, word }) {
-  const [time, setTime] = useState(20);
-
+function Timer({ setShowWord, roomName, socket, id, word, time, setTime }) {
   useEffect(() => {
     const intervalId = setInterval(() => {
       if (time <= 0) {

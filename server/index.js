@@ -35,6 +35,7 @@ io.on("connection", (socket) => {
       player.username = formData.playerName;
       player.isCreator = true;
       player.score = 0;
+      player.guessed = false;
 
       room.name = formData.roomName;
       room.password = formData.password;
@@ -76,6 +77,7 @@ io.on("connection", (socket) => {
       player.socketId = socket.id;
       player.isCreator = false;
       player.score = false;
+      player.guessed = false;
 
       room.players.push(player);
       await room.save();
@@ -119,7 +121,32 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("notif", (data) => {
+  socket.on("notif", async (data) => {
+    if (data.message.toLowerCase() === data.word) {
+      console.log(data);
+      const room = await Room.findOne({ name: data.roomName });
+      const index = room.players.findIndex(
+        (player) => player.socketId === socket.id
+      );
+      if (!room.players[index].guessed) {
+        room.totalGuesses = room.totalGuesses + 1;
+        room.players[index].guessed = true;
+        console.log(data.addScore);
+        room.players[index].score = room.players[index].score + data.addScore;
+        console.log(room.players[index].score);
+        socket.nsp.to(room.name).emit("guess-score-update", { roomData: room });
+        await room.save();
+        socket.to(room.name).emit("notif", {
+          message: `${room.players[index].username} guessed the word !`,
+          type: "imp-notif",
+        });
+
+        if (room.totalGuesses === room.players.length - 1)
+          nextTurn(data, socket);
+      }
+      return;
+    }
+
     socket.to(data.roomName).emit("notif", {
       message: data.message,
       senderName: data.username,
@@ -152,17 +179,7 @@ io.on("connection", (socket) => {
       message: `the word was ${data.word}`,
       type: "imp-notif",
     });
-    const room = await Room.findOne({ name: data.roomName });
-    room.turnIndex = room.turnIndex + 1;
-    room.currentWord = getWord();
-
-    socket.nsp.to(data.roomName).emit("notif", {
-      message: `${room.players[room.turnIndex].username} is drawing the word`,
-      type: "imp-notif",
-    });
-
-    await room.save();
-    socket.nsp.to(data.roomName).emit("update-room", { roomData: room });
+    nextTurn(data, socket);
   });
 
   socket.on("disconnect", () => {
@@ -174,3 +191,25 @@ server.listen(PORT, async () => {
   await mongoose.connect(process.env.MONGODB_URL);
   console.log("listening on port: ", PORT);
 });
+
+async function nextTurn(data, socket) {
+  const room = await Room.findOne({ name: data.roomName });
+  if (room.turnIndex === room.players.length - 1) {
+    if (room.currentRound === room.rounds) {
+      socket.nsp.to(data.roomName).emit("end-game");
+    }
+    room.turnIndex = 0;
+    room.currentRound = room.currentRound + 1;
+  } else room.turnIndex = room.turnIndex + 1;
+  room.currentWord = getWord();
+  room.totalGuesses = 0;
+  room.players.map((player) => (player.guessed = false));
+
+  socket.nsp.to(data.roomName).emit("notif", {
+    message: `${room.players[room.turnIndex].username} is drawing the word`,
+    type: "imp-notif",
+  });
+
+  await room.save();
+  socket.nsp.to(data.roomName).emit("update-nextturn", { roomData: room });
+}

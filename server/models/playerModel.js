@@ -17,6 +17,11 @@ export const playerSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  guessed: {
+    type: Boolean,
+    default: false,
+    required: true,
+  },
 });
 
 export const Player = mongoose.model("Player", playerSchema);
