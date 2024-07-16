@@ -137,6 +137,14 @@ io.on("connection", (socket) => {
     socket.to(data.roomName).emit("stop-drawing", data);
   });
 
+  socket.on("brush-change", (data) => {
+    socket.to(data.roomName).emit("brush-change", data);
+  });
+
+  socket.on("clear-canvas", (data) => {
+    socket.to(data.roomName).emit("clear-canvas", data);
+  });
+
   socket.on("disconnect", () => {
     console.log("a user disconnected");
   });

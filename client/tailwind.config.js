@@ -7,7 +7,8 @@ module.exports = {
         quicksand: ["developer", "sans"],
       },
       screens: {
-        phn: { max: "1194px" },
+        phn1: { max: "1278px" },
+        phn2: { max: "980px" },
       },
     },
   },
