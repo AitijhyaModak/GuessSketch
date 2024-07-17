@@ -45,7 +45,6 @@ export default function Canvas({ roomState }) {
 
       socket.on("clear-canvas", () => {
         const canvas = canvasRef.current;
-        console.log(canvas);
         drawerCtx.clearRect(0, 0, canvas.width, canvas.height);
       });
     }

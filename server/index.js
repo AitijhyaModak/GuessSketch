@@ -46,7 +46,6 @@ io.on("connection", (socket) => {
 
       await room.save();
       await socket.join(room.name);
-
       socket.emit("success-created-room", room);
     } catch (err) {
       console.log(err);
@@ -121,32 +120,30 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("notif", async (data) => {
-    if (data.message.toLowerCase() === data.word) {
-      console.log(data);
-      const room = await Room.findOne({ name: data.roomName });
-      const index = room.players.findIndex(
-        (player) => player.socketId === socket.id
-      );
-      if (!room.players[index].guessed) {
-        room.totalGuesses = room.totalGuesses + 1;
-        room.players[index].guessed = true;
-        console.log(data.addScore);
-        room.players[index].score = room.players[index].score + data.addScore;
-        console.log(room.players[index].score);
-        socket.nsp.to(room.name).emit("guess-score-update", { roomData: room });
-        await room.save();
-        socket.to(room.name).emit("notif", {
-          message: `${room.players[index].username} guessed the word !`,
-          type: "imp-notif",
-        });
+  socket.on("guess", async (data) => {
+    const room = await Room.findOne({ name: data.roomName });
+    const index = room.players.findIndex(
+      (player) => player.socketId === socket.id
+    );
+    if (!room.players[index].guessed) {
+      room.totalGuesses = room.totalGuesses + 1;
+      room.players[index].guessed = true;
+      room.players[room.turnIndex].score =
+        room.players[room.turnIndex].score + 18;
+      room.players[index].score = room.players[index].score + data.addScore;
+      socket.nsp.to(room.name).emit("guess-score-update", { roomData: room });
+      await room.save();
+      socket.to(room.name).emit("notif", {
+        message: `${room.players[index].username} guessed the word !`,
+        type: "imp-notif",
+      });
 
-        if (room.totalGuesses === room.players.length - 1)
-          nextTurn(data, socket);
-      }
-      return;
+      if (room.totalGuesses === room.players.length - 1) nextTurn(data, socket);
     }
+    return;
+  });
 
+  socket.on("notif", (data) => {
     socket.to(data.roomName).emit("notif", {
       message: data.message,
       senderName: data.username,
@@ -182,8 +179,83 @@ io.on("connection", (socket) => {
     nextTurn(data, socket);
   });
 
+  socket.on("disconnecting", async () => {
+    const rooms = Array.from(socket.rooms);
+    if (rooms.length === 1) return;
+    const room = await Room.findOne({ name: rooms[1] });
+    if (!room) return;
+
+    if (room.players.length === 1) {
+      await Room.deleteOne({ name: room.name });
+      return;
+    }
+
+    if (!room.gameStarted) {
+      const index = room.players.findIndex(
+        (player) => player.socketId === socket.id
+      );
+      const player = room.players[index];
+      room.players.splice(index, 1);
+      await room.save();
+      socket.to(room.name).emit("notif", {
+        message: `${player.username} has left the room`,
+        type: "leave-notif",
+      });
+      socket.to(room.name).emit("room-update", { roomData: room });
+      return;
+    }
+
+    if (room.gameStarted) {
+      const index = room.players.findIndex(
+        (player) => player.socketId === socket.id
+      );
+      const player = room.players[index];
+
+      if (room.players.length === 2) {
+        room.players.splice(index, 1);
+        socket.to(room.name).emit("end-game", { roomData: room });
+        await Room.deleteOne({ name: room.name });
+        return;
+      }
+
+      if (index === room.turnIndex) {
+        //drawing
+        room.players.splice(index, 1);
+        await room.save();
+        nextTurnWhenDrawerLeaves(room, socket);
+        return;
+      }
+      //
+      else {
+        //not drawing
+        room.players.splice(index, 1);
+        await room.save();
+        socket.to(room.name).emit("notif", {
+          message: `${player.username} has left the room`,
+          type: "leave-notif",
+        });
+
+        if (player.guessed) {
+          room.totalGuesses = room.totalGuesses - 1;
+          await room.save();
+          socket.to(room.name).emit("room-update", { roomData: room });
+        } else {
+          if (room.totalGuesses === room.players.length - 1) {
+            nextTurn({ roomName: room.name }, socket);
+          } else socket.to(room.name).emit("room-update", { roomData: room });
+          return;
+        }
+      }
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("a user disconnected");
+  });
+
+  socket.on("leave-room", async (data) => {
+    socket.leave(data.roomName);
+    await Room.deleteOne({ name: data.roomName });
   });
 });
 
@@ -193,10 +265,13 @@ server.listen(PORT, async () => {
 });
 
 async function nextTurn(data, socket) {
+  console.log("next turn");
   const room = await Room.findOne({ name: data.roomName });
   if (room.turnIndex === room.players.length - 1) {
     if (room.currentRound === room.rounds) {
-      socket.nsp.to(data.roomName).emit("end-game");
+      socket.nsp.to(data.roomName).emit("end-game", { roomData: room });
+      await Room.deleteOne({ name: roomName });
+      return;
     }
     room.turnIndex = 0;
     room.currentRound = room.currentRound + 1;
@@ -212,4 +287,26 @@ async function nextTurn(data, socket) {
 
   await room.save();
   socket.nsp.to(data.roomName).emit("update-nextturn", { roomData: room });
+}
+
+async function nextTurnWhenDrawerLeaves(room, socket) {
+  if (room.turnIndex >= room.players.length) {
+    if (room.currentRound === room.rounds) {
+      socket.to(room.name).emit("end-game", { roomData: room });
+      await Room.deleteOne({ name: room.name });
+      return;
+    }
+    room.turnIndex = 0;
+    room.currentRound = room.currentRound + 1;
+  }
+  room.currentWord = getWord();
+  room.totalGuesses = 0;
+  room.players.map((player) => (player.guessed = false));
+
+  await room.save();
+  socket.to(room.name).emit("notif", {
+    message: `${room.players[room.turnIndex].username} is drawing the word`,
+    type: "imp-notif",
+  });
+  socket.to(room.name).emit("update-nextturn", { roomData: room });
 }

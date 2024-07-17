@@ -20,6 +20,7 @@ function App() {
       )}
       {inRoom && (
         <Game
+          setInRoom={setInRoom}
           username={username}
           roomState={roomState}
           setRoomState={setRoomState}

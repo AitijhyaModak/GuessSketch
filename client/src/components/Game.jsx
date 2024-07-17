@@ -3,15 +3,17 @@ import { SocketContext } from "../context/socket";
 import Canvas from "./Canvas";
 import PlayersList from "./PlayerList";
 import GuessAndChat from "./GuessAndChat";
+import EndLeaderboard from "./EndLeaderboard";
 
-export default function Game({ roomState, setRoomState, username }) {
+export default function Game({ roomState, setRoomState, username, setInRoom }) {
   const socket = useContext(SocketContext);
   const [showWord, setShowWord] = useState(false);
   const [notifs, setNotifs] = useState([
     { message: "you joined", index: 0, type: "join-notif" },
   ]);
   const [didGuess, setDidGuess] = useState(false);
-  const [time, setTime] = useState(20);
+  const [time, setTime] = useState(90);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   useEffect(() => {
     socket.on("update-player-joined", (data) => {
@@ -28,12 +30,13 @@ export default function Game({ roomState, setRoomState, username }) {
     socket.on("update-start-game", (data) => {
       setRoomState(data.roomData);
       setShowWord(true);
-      setTime(20);
+      setTime(90);
     });
 
     socket.on("update-nextturn", (data) => {
       setRoomState(data.roomData);
-      setTime(20);
+      setTime(90);
+      setDidGuess(false);
       setShowWord(true);
     });
 
@@ -41,10 +44,29 @@ export default function Game({ roomState, setRoomState, username }) {
       console.log(data.playersData);
       setRoomState(data.roomData);
     });
+
+    socket.on("end-game", (data) => {
+      setShowLeaderboard(true);
+      setShowWord(false);
+      setRoomState(data.roomData);
+    });
+
+    socket.on("room-update", (data) => {
+      setRoomState(data.roomData);
+    });
   }, [socket]);
 
   return (
     <div className="h-[100dvh] flex flex-col relative items-center w-full">
+      {showLeaderboard && (
+        <EndLeaderboard
+          name={roomState.name}
+          socket={socket}
+          players={roomState.players}
+          setInRoom={setInRoom}
+        ></EndLeaderboard>
+      )}
+
       {showWord && (
         <Word
           turnIndex={roomState.turnIndex}
