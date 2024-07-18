@@ -2,7 +2,7 @@ export default function PlayersList({ roomState }) {
   return (
     <div className="min-w-fit flex flex-col justify-end pb-3 mr-5 pl-5">
       {roomState.players.map((item) => (
-        <Player player={item} key={item.id}></Player>
+        <Player player={item} key={item.socketId}></Player>
       ))}
     </div>
   );

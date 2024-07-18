@@ -14,16 +14,15 @@ export default function Game({ roomState, setRoomState, username, setInRoom }) {
   const [didGuess, setDidGuess] = useState(false);
   const [time, setTime] = useState(90);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [resetCanvas, setResetCanvas] = useState(false);
 
   useEffect(() => {
     socket.on("update-player-joined", (data) => {
-      data.notif.index = notifs.length;
       setRoomState(data.roomData);
       setNotifs((prevState) => [...prevState, data.notif]);
     });
 
     socket.on("notif", (notif) => {
-      notif.index = notifs.length;
       setNotifs((prevState) => [...prevState, notif]);
     });
 
@@ -88,7 +87,12 @@ export default function Game({ roomState, setRoomState, username, setInRoom }) {
         ></Timer>
       )}
 
-      <Canvas roomState={roomState} socket={socket}></Canvas>
+      <Canvas
+        roomState={roomState}
+        socket={socket}
+        resetCanvas={resetCanvas}
+        setResetCanvas={setResetCanvas}
+      ></Canvas>
 
       <div className="flex h-full w-full overflow-hidden">
         <PlayersList roomState={roomState}></PlayersList>

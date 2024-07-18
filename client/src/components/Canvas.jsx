@@ -4,7 +4,6 @@ import { ColorPicker } from "./ColorPicker";
 
 export default function Canvas({ roomState }) {
   const socket = useContext(SocketContext);
-
   const canvasRef = useRef(null);
   const [ctx, setCtx] = useState(null);
   const [drawerCtx, setDrawerCtx] = useState(null);
@@ -14,6 +13,13 @@ export default function Canvas({ roomState }) {
   const [brushWidth, setBrushWidth] = useState(2);
 
   useEffect(() => {
+    socket.on("update-nextturn", () => {
+      setColor("#FFFFFF");
+      setIsEraser(false);
+      setBrushWidth(2);
+      clearCanvas();
+    });
+
     const rect = canvasRef.current.getBoundingClientRect();
     if (drawerCtx) {
       socket.on("start-drawing", (data) => {
@@ -45,7 +51,7 @@ export default function Canvas({ roomState }) {
 
       socket.on("clear-canvas", () => {
         const canvas = canvasRef.current;
-        drawerCtx.clearRect(0, 0, canvas.width, canvas.height);
+        drawerCtx.clearRect(0, 0, rect.right - rect.left, canvas.height);
       });
     }
   }, [drawerCtx, socket]);
@@ -120,6 +126,7 @@ export default function Canvas({ roomState }) {
 
   useEffect(() => {
     const canvas = canvasRef.current;
+
     const rect = canvas.getBoundingClientRect();
     canvas.height = 450;
     canvas.width = rect.right - rect.left;
@@ -127,8 +134,8 @@ export default function Canvas({ roomState }) {
     c.strokeStyle = color;
     c.lineWidth = brushWidth;
     c.lineCap = "round";
-    setDrawerCtx(c);
     setCtx(c);
+    setDrawerCtx(c);
   }, [canvasRef.current]);
 
   useEffect(() => {
@@ -170,9 +177,8 @@ export default function Canvas({ roomState }) {
         onMouseDown={startDrawing}
         onMouseUp={stopDrawing}
         onMouseMove={draw}
-        className="bg-slate-950 w-full h-[450px] mx-auto overflow-hidden text-green-500"
+        className="bg-slate-900 w-full h-[450px]"
       ></canvas>
-
       <ColorPicker
         setColor={changeColor}
         clearCanvas={clearCanvas}

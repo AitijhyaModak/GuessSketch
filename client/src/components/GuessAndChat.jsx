@@ -45,7 +45,6 @@ export default function GuessAndChat({
       type: "message-notif",
       senderName: "you",
       message: typed,
-      index: notifs.length,
     };
     setNotifs((prevState) => [...prevState, notif]);
     setTyped("");
@@ -65,8 +64,8 @@ export default function GuessAndChat({
         ref={scrollRef}
         className="h-full p-3 overflow-hidden overflow-y-scroll w-full"
       >
-        {notifs.map((item) => (
-          <Notification notif={item} key={item.index}></Notification>
+        {notifs.map((item, index) => (
+          <Notification notif={item} key={index}></Notification>
         ))}
       </div>
       <form className="h-12 flex items-center p-3">
