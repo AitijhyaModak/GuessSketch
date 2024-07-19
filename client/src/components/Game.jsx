@@ -12,7 +12,7 @@ export default function Game({ roomState, setRoomState, username, setInRoom }) {
     { message: "you joined", index: 0, type: "join-notif" },
   ]);
   const [didGuess, setDidGuess] = useState(false);
-  const [time, setTime] = useState(95);
+  const [time, setTime] = useState(90);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showInfo, setShowInfo] = useState(true);
 
@@ -30,12 +30,13 @@ export default function Game({ roomState, setRoomState, username, setInRoom }) {
       setRoomState(data.roomData);
       setShowWord(true);
       DisplayInformationBetweenTurns();
-      setTime(95);
+      setDidGuess(false);
+      setTime(90);
     });
 
     socket.on("update-nextturn", (data) => {
       setRoomState(data.roomData);
-      setTime(95);
+      setTime(90);
       setDidGuess(false);
       DisplayInformationBetweenTurns();
       setShowWord(true);

@@ -88,8 +88,8 @@ export default function GameConfiguration({
     <>
       <Navbar></Navbar>
 
-      <div className="w-fit mx-auto curs">
-        <Link to="about" clas>
+      <div className="w-fit mx-auto">
+        <Link to="about">
           <div className="text-green-300 w-fit mx-auto">how to play?</div>
         </Link>
       </div>

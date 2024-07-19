@@ -17,7 +17,6 @@ export function ColorPicker({
         className="active:opacity-50 h-6 w-6 bg-green-500 cursor-pointer"
         onClick={() => setColor("#22C55E")}
       ></div>
-      {/* fasfasfdads */}
       <div
         className="active:opacity-50 h-6 w-6 bg-amber-900 cursor-pointer"
         onClick={() => setColor("#78350f")}

@@ -13,10 +13,18 @@ export default function Canvas({ roomState, showInfo, setShowInfo }) {
   const [brushWidth, setBrushWidth] = useState(2);
 
   useEffect(() => {
+    const canvas = canvasRef.current;
     const rect = canvasRef.current.getBoundingClientRect();
+
     if (ctx && drawerCtx) {
       socket.on("update-nextturn", () => {
-        resetCanvas();
+        ctx.clearRect(0, 0, rect.right - rect.left, 450);
+        const c = canvas.getContext("2d");
+        c.strokeStyle = "#FFFFFF";
+        c.lineWidth = 2;
+        c.lineCap = "round";
+        setCtx(c);
+        setDrawerCtx(c);
       });
 
       socket.on("start-drawing", (data) => {
@@ -50,7 +58,7 @@ export default function Canvas({ roomState, showInfo, setShowInfo }) {
         drawerCtx.clearRect(0, 0, rect.right - rect.left, 450);
       });
     }
-  }, [drawerCtx, socket, ctx]);
+  }, [drawerCtx, socket, ctx, canvasRef.current]);
 
   function startDrawing(e) {
     if (
@@ -139,7 +147,7 @@ export default function Canvas({ roomState, showInfo, setShowInfo }) {
     const c = ctx;
 
     if (isEraser) {
-      c.strokeStyle = "#020617";
+      c.strokeStyle = "#0f172a";
     } else c.strokeStyle = color;
 
     c.lineWidth = brushWidth;
@@ -164,23 +172,11 @@ export default function Canvas({ roomState, showInfo, setShowInfo }) {
   }
 
   function clearCanvas() {
+    if (!canvasRef.current) return;
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     ctx.clearRect(0, 0, rect.right - rect.left, 450);
     socket.emit("clear-canvas", { roomName: roomState.name });
-  }
-
-  function resetCanvas() {
-    const canvas = canvasRef.current;
-    console.log(canvas);
-    const rect = canvas.getBoundingClientRect();
-    ctx.clearRect(0, 0, rect.right - rect.left, 450);
-    const c = canvas.getContext("2d");
-    c.strokeStyle = "#FFFFFF";
-    c.lineWidth = 2;
-    c.lineCap = "round";
-    setCtx(c);
-    setDrawerCtx(c);
   }
 
   return (
@@ -206,14 +202,17 @@ export default function Canvas({ roomState, showInfo, setShowInfo }) {
         onMouseDown={startDrawing}
         onMouseUp={stopDrawing}
         onMouseMove={draw}
-        className="bg-slate-900 w-full h-[450px]"
+        className="bg-slate-900 w-full h-[450px] touch-none"
       ></canvas>
-      <ColorPicker
-        setColor={changeColor}
-        clearCanvas={clearCanvas}
-        setIsEraser={setIsEraser}
-        setBrushWidth={setBrushWidth}
-      ></ColorPicker>
+      {roomState.gameStarted &&
+        roomState.players[roomState.turnIndex]?.socketId === socket.id && (
+          <ColorPicker
+            setColor={changeColor}
+            clearCanvas={clearCanvas}
+            setIsEraser={setIsEraser}
+            setBrushWidth={setBrushWidth}
+          ></ColorPicker>
+        )}
     </div>
   );
 }

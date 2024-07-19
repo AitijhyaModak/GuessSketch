@@ -18,9 +18,18 @@ export default function GuessAndChat({
 
   const sendMessage = (e) => {
     e.preventDefault();
-    if (roomState.players[roomState.turnIndex].socketId === id) return;
 
-    if (!didGuess && typed.toLowerCase() === roomState.currentWord) {
+    if (
+      roomState.gameStarted &&
+      roomState.players[roomState.turnIndex].socketId === id
+    )
+      return;
+
+    if (
+      roomState.gameStarted &&
+      !didGuess &&
+      typed.toLowerCase() === roomState.currentWord
+    ) {
       setDidGuess(true);
       setNotifs((prevState) => [
         ...prevState,
@@ -34,20 +43,28 @@ export default function GuessAndChat({
         type: "message-notif",
         addScore: time * 2,
       };
+
       socket.emit("guess", guessData);
       setTyped("");
       return;
     }
 
-    if (didGuess && typed.toLowerCase() === roomState.currentWord) return;
+    if (
+      roomState.gameStarted &&
+      didGuess &&
+      typed.toLowerCase() === roomState.currentWord
+    )
+      return;
 
     const notif = {
       type: "message-notif",
       senderName: "you",
       message: typed,
+      roomName: roomState.name,
     };
     setNotifs((prevState) => [...prevState, notif]);
     setTyped("");
+    notif.senderName = username;
     socket.emit("notif", notif);
   };
 

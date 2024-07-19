@@ -144,6 +144,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("notif", (data) => {
+    console.log("x");
     socket.to(data.roomName).emit("notif", {
       message: data.message,
       senderName: data.username,

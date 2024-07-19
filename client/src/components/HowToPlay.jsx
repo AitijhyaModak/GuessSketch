@@ -1,9 +1,17 @@
 import Navbar from "./Navbar";
+import { Link } from "react-router-dom";
 
 export default function HowToPlay() {
   return (
     <div>
       <Navbar></Navbar>
+
+      <div className="w-fit mx-auto curs">
+        <Link to="/">
+          <div className="text-green-300 w-fit mx-auto">home</div>
+        </Link>
+      </div>
+
       <div className="text-green-600 text-left p-5">
         <div>
           <h1 className="text-4xl font-semibold">about game</h1>
