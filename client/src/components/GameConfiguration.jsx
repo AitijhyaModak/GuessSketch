@@ -26,11 +26,33 @@ export default function GameConfiguration({
 
   const handleSubmit = (e, type) => {
     e.preventDefault();
+
+    if (formData1.playerName === "") {
+      toast.error("Username is required !!");
+      return;
+    }
+
+    if (formData1.playerName.length < 3) {
+      toast.error("Username must be atleast 3 letters long !!");
+      return;
+    }
+
     setUsername(formData1.playerName);
+
     if (type === "create") {
+      if (formData1.roomName === "" || formData1.password === "") {
+        toast.error("Credentials cannot be empty !!");
+        return;
+      }
+
       socket.emit("create-room", formData1);
       setFormData1(emptyForm1);
     } else {
+      if (formData2.roomName === "" || formData2.password === "") {
+        toast.error("Credentials cannot be empty !!");
+        return;
+      }
+
       socket.emit("join-room", {
         ...formData2,
         playerName: formData1.playerName,
