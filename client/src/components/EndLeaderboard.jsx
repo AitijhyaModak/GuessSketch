@@ -5,7 +5,7 @@ export default function EndLeaderboard({ players, setInRoom, socket, name }) {
   }
 
   return (
-    <div className="absolute z-20 bg-black w-[90%] h-full border-2 border-yellow-500 rounded-lg">
+    <div className="absolute z-50 bg-black w-[90%] h-full border-2 border-yellow-500 rounded-lg">
       <h1 className="text-green-500 text-4xl text-center mt-10">Leaderboard</h1>
       <div className="flex flex-col justify-center items-center gap-5 mt-20 ">
         {players

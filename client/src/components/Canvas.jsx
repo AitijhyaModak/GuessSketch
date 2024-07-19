@@ -2,7 +2,7 @@ import { useContext, useState, useEffect, useRef } from "react";
 import { SocketContext } from "../context/socket";
 import { ColorPicker } from "./ColorPicker";
 
-export default function Canvas({ roomState }) {
+export default function Canvas({ roomState, showInfo, setShowInfo }) {
   const socket = useContext(SocketContext);
   const canvasRef = useRef(null);
   const [ctx, setCtx] = useState(null);
@@ -13,15 +13,12 @@ export default function Canvas({ roomState }) {
   const [brushWidth, setBrushWidth] = useState(2);
 
   useEffect(() => {
-    socket.on("update-nextturn", () => {
-      setColor("#FFFFFF");
-      setIsEraser(false);
-      setBrushWidth(2);
-      clearCanvas();
-    });
-
     const rect = canvasRef.current.getBoundingClientRect();
-    if (drawerCtx) {
+    if (ctx && drawerCtx) {
+      socket.on("update-nextturn", () => {
+        resetCanvas();
+      });
+
       socket.on("start-drawing", (data) => {
         drawerCtx.beginPath();
         drawerCtx.moveTo(
@@ -50,11 +47,10 @@ export default function Canvas({ roomState }) {
       });
 
       socket.on("clear-canvas", () => {
-        const canvas = canvasRef.current;
-        drawerCtx.clearRect(0, 0, rect.right - rect.left, canvas.height);
+        drawerCtx.clearRect(0, 0, rect.right - rect.left, 450);
       });
     }
-  }, [drawerCtx, socket]);
+  }, [drawerCtx, socket, ctx]);
 
   function startDrawing(e) {
     if (
@@ -136,7 +132,7 @@ export default function Canvas({ roomState }) {
     c.lineCap = "round";
     setCtx(c);
     setDrawerCtx(c);
-  }, [canvasRef.current]);
+  }, []);
 
   useEffect(() => {
     if (!ctx) return;
@@ -147,11 +143,18 @@ export default function Canvas({ roomState }) {
     } else c.strokeStyle = color;
 
     c.lineWidth = brushWidth;
-    socket.emit("brush-change", {
-      brushWidth,
-      color: c.strokeStyle,
-      roomName: roomState.name,
-    });
+
+    if (
+      roomState.gameStarted &&
+      roomState.players[roomState.turnIndex].socketId === socket.id
+    ) {
+      socket.emit("brush-change", {
+        brushWidth,
+        color: c.strokeStyle,
+        roomName: roomState.name,
+      });
+    }
+
     setCtx(c);
   }, [color, isEraser, brushWidth]);
 
@@ -162,12 +165,38 @@ export default function Canvas({ roomState }) {
 
   function clearCanvas() {
     const canvas = canvasRef.current;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const rect = canvas.getBoundingClientRect();
+    ctx.clearRect(0, 0, rect.right - rect.left, 450);
     socket.emit("clear-canvas", { roomName: roomState.name });
   }
 
+  function resetCanvas() {
+    const canvas = canvasRef.current;
+    console.log(canvas);
+    const rect = canvas.getBoundingClientRect();
+    ctx.clearRect(0, 0, rect.right - rect.left, 450);
+    const c = canvas.getContext("2d");
+    c.strokeStyle = "#FFFFFF";
+    c.lineWidth = 2;
+    c.lineCap = "round";
+    setCtx(c);
+    setDrawerCtx(c);
+  }
+
   return (
-    <div className="w-full h-fit">
+    <div className="w-full h-fit relative">
+      {showInfo && (
+        <div className="w-full h-[450px] bg-black opacity-70 absolute top-0 left-0 z-20 flex justify-center items-center">
+          {!roomState.gameStarted && <WaitingLobbyInfo></WaitingLobbyInfo>}
+          {roomState.gameStarted && (
+            <TurnStartLobbyInfo
+              word={roomState.currentWord}
+              player={roomState.players[roomState.turnIndex]}
+            ></TurnStartLobbyInfo>
+          )}
+        </div>
+      )}
+
       <canvas
         ref={canvasRef}
         id="canvas"
@@ -185,6 +214,30 @@ export default function Canvas({ roomState }) {
         setIsEraser={setIsEraser}
         setBrushWidth={setBrushWidth}
       ></ColorPicker>
+    </div>
+  );
+}
+
+function WaitingLobbyInfo() {
+  return (
+    <div className="text-center">
+      <h1 className="text-green-500 text-3xl">You have joined the room !!</h1>
+      <p className="text-green-600 mt-5">
+        Game will start when all the players join ...
+      </p>
+    </div>
+  );
+}
+
+function TurnStartLobbyInfo({ player, word }) {
+  return (
+    <div className="text-center">
+      <h1 className="text-green-400 text-3xl">
+        {player.username} will be drawing now !
+      </h1>
+      <p className="text-green-500 mt-5 text-lg">
+        The word is of <span className="font-bold">{word.length}</span> letters
+      </p>
     </div>
   );
 }

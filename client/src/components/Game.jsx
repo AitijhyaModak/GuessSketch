@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useContext, useCallback } from "react";
+import { useState, useEffect, useContext } from "react";
 import { SocketContext } from "../context/socket";
 import Canvas from "./Canvas";
 import PlayersList from "./PlayerList";
@@ -12,9 +12,9 @@ export default function Game({ roomState, setRoomState, username, setInRoom }) {
     { message: "you joined", index: 0, type: "join-notif" },
   ]);
   const [didGuess, setDidGuess] = useState(false);
-  const [time, setTime] = useState(90);
+  const [time, setTime] = useState(95);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [resetCanvas, setResetCanvas] = useState(false);
+  const [showInfo, setShowInfo] = useState(true);
 
   useEffect(() => {
     socket.on("update-player-joined", (data) => {
@@ -29,18 +29,19 @@ export default function Game({ roomState, setRoomState, username, setInRoom }) {
     socket.on("update-start-game", (data) => {
       setRoomState(data.roomData);
       setShowWord(true);
-      setTime(90);
+      DisplayInformationBetweenTurns();
+      setTime(95);
     });
 
     socket.on("update-nextturn", (data) => {
       setRoomState(data.roomData);
-      setTime(90);
+      setTime(95);
       setDidGuess(false);
+      DisplayInformationBetweenTurns();
       setShowWord(true);
     });
 
     socket.on("guess-score-update", (data) => {
-      console.log(data.playersData);
       setRoomState(data.roomData);
     });
 
@@ -55,6 +56,13 @@ export default function Game({ roomState, setRoomState, username, setInRoom }) {
     });
   }, [socket]);
 
+  function DisplayInformationBetweenTurns() {
+    setShowInfo(true);
+    setInterval(() => {
+      setShowInfo(false);
+    }, 5000);
+  }
+
   return (
     <div className="h-[100dvh] flex flex-col relative items-center w-full">
       {showLeaderboard && (
@@ -66,7 +74,7 @@ export default function Game({ roomState, setRoomState, username, setInRoom }) {
         ></EndLeaderboard>
       )}
 
-      {showWord && (
+      {!showInfo && showWord && !didGuess && (
         <Word
           turnIndex={roomState.turnIndex}
           word={roomState.currentWord}
@@ -75,7 +83,7 @@ export default function Game({ roomState, setRoomState, username, setInRoom }) {
         ></Word>
       )}
 
-      {showWord && (
+      {!showInfo && showWord && (
         <Timer
           setShowWord={setShowWord}
           roomName={roomState.name}
@@ -90,8 +98,8 @@ export default function Game({ roomState, setRoomState, username, setInRoom }) {
       <Canvas
         roomState={roomState}
         socket={socket}
-        resetCanvas={resetCanvas}
-        setResetCanvas={setResetCanvas}
+        showInfo={showInfo}
+        setShowInfo={setShowInfo}
       ></Canvas>
 
       <div className="flex h-full w-full overflow-hidden">

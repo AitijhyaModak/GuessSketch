@@ -270,7 +270,7 @@ async function nextTurn(data, socket) {
   if (room.turnIndex === room.players.length - 1) {
     if (room.currentRound === room.rounds) {
       socket.nsp.to(data.roomName).emit("end-game", { roomData: room });
-      await Room.deleteOne({ name: roomName });
+      await Room.deleteOne({ name: data.roomName });
       return;
     }
     room.turnIndex = 0;
