@@ -3,7 +3,7 @@ import Navbar from "./Navbar";
 import { SocketContext } from "../context/socket";
 import toast from "react-hot-toast";
 
-const emptyForm = {
+const emptyForm1 = {
   playerName: "",
   roomName: "",
   password: "",
@@ -21,19 +21,19 @@ export default function GameConfiguration({
   setUsername,
 }) {
   const socket = useContext(SocketContext);
-  const [formData, setFormData] = useState(emptyForm);
+  const [formData1, setFormData1] = useState(emptyForm1);
   const [formData2, setFormData2] = useState(emptyForm2);
 
   const handleSubmit = (e, type) => {
     e.preventDefault();
-    setUsername(formData.playerName);
+    setUsername(formData1.playerName);
     if (type === "create") {
-      socket.emit("create-room", formData);
-      setFormData(emptyForm);
+      socket.emit("create-room", formData1);
+      setFormData1(emptyForm1);
     } else {
       socket.emit("join-room", {
         ...formData2,
-        playerName: formData.playerName,
+        playerName: formData1.playerName,
       });
       setFormData2(emptyForm2);
     }
@@ -67,9 +67,9 @@ export default function GameConfiguration({
       <div className="max-w-[500px] mt-6 mx-auto p-4 flex flex-col justify-center">
         <input
           type="text"
-          value={formData.playerName}
+          value={formData1.playerName}
           onChange={(e) =>
-            setFormData({ ...formData, playerName: e.target.value })
+            setFormData1({ ...formData1, playerName: e.target.value })
           }
           placeholder="click here to set name"
           className="outline-none text-green-500 bg-black w-fit mx-auto mb-10 h-10 placeholder:text-green-700 text-center"
@@ -77,18 +77,18 @@ export default function GameConfiguration({
 
         <form className="flex flex-col ">
           <input
-            value={formData.roomName}
+            value={formData1.roomName}
             onChange={(e) =>
-              setFormData({ ...formData, roomName: e.target.value })
+              setFormData1({ ...formData1, roomName: e.target.value })
             }
             type="text"
             className="text-center text-green-500 outline-none bg-black w-3/4 mx-auto h-10 rounded-lg px-2 placeholder:text-green-700"
             placeholder="click to set room name"
           />
           <input
-            value={formData.password}
+            value={formData1.password}
             onChange={(e) =>
-              setFormData({ ...formData, password: e.target.value })
+              setFormData1({ ...formData1, password: e.target.value })
             }
             type="password"
             placeholder="click to set room password"
@@ -97,9 +97,9 @@ export default function GameConfiguration({
           <div className="flex gap-3 justify-center mt-4">
             <span className="text-green-700">rounds:</span>
             <input
-              value={formData.rounds}
+              value={formData1.rounds}
               onChange={(e) =>
-                setFormData({ ...formData, rounds: e.target.value })
+                setFormData1({ ...formData1, rounds: e.target.value })
               }
               type="number"
               min={1}
@@ -111,9 +111,9 @@ export default function GameConfiguration({
           <div className="flex justify-center gap-3 mt-4">
             <span className="text-green-700">players:</span>
             <input
-              value={formData.totalPlayers}
+              value={formData1.totalPlayers}
               onChange={(e) =>
-                setFormData({ ...formData, totalPlayers: e.target.value })
+                setFormData1({ ...formData1, totalPlayers: e.target.value })
               }
               type="number"
               min={2}
