@@ -2,6 +2,7 @@ import { useContext, useState, useEffect } from "react";
 import Navbar from "./Navbar";
 import { SocketContext } from "../context/socket";
 import toast from "react-hot-toast";
+import { Link } from "react-router-dom";
 
 const emptyForm1 = {
   playerName: "",
@@ -86,6 +87,13 @@ export default function GameConfiguration({
   return (
     <>
       <Navbar></Navbar>
+
+      <div className="w-fit mx-auto curs">
+        <Link to="about" clas>
+          <div className="text-green-300 w-fit mx-auto">how to play?</div>
+        </Link>
+      </div>
+
       <div className="max-w-[500px] mt-6 mx-auto p-4 flex flex-col justify-center">
         <input
           type="text"
@@ -93,7 +101,7 @@ export default function GameConfiguration({
           onChange={(e) =>
             setFormData1({ ...formData1, playerName: e.target.value })
           }
-          placeholder="click here to set name"
+          placeholder="click to set username"
           className="outline-none text-green-500 bg-black w-fit mx-auto mb-10 h-10 placeholder:text-green-700 text-center"
         />
 
@@ -169,7 +177,7 @@ export default function GameConfiguration({
             onChange={(e) =>
               setFormData2({ ...formData2, password: e.target.value })
             }
-            placeholder="click to enter password"
+            placeholder="click to enter room password"
             className="mt-4 text-center text-green-500 outline-none bg-black w-3/4 mx-auto h-10 rounded-lg px-2 placeholder:text-green-700"
           />
           <button
