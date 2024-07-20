@@ -135,7 +135,7 @@ io.on("connection", (socket) => {
       await room.save();
       socket.to(room.name).emit("notif", {
         message: `${room.players[index].username} guessed the word !`,
-        type: "imp-notif",
+        type: "guess-notif",
       });
 
       if (room.totalGuesses === room.players.length - 1) nextTurn(data, socket);
@@ -144,7 +144,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("notif", (data) => {
-    console.log("x");
     socket.to(data.roomName).emit("notif", {
       message: data.message,
       senderName: data.username,

@@ -58,7 +58,7 @@ export default function Canvas({ roomState, showInfo, setShowInfo }) {
         drawerCtx.clearRect(0, 0, rect.right - rect.left, 450);
       });
     }
-  }, [drawerCtx, socket, ctx, canvasRef.current]);
+  }, [drawerCtx, socket, ctx]);
 
   function startDrawing(e) {
     if (
@@ -140,6 +140,7 @@ export default function Canvas({ roomState, showInfo, setShowInfo }) {
     c.lineCap = "round";
     setCtx(c);
     setDrawerCtx(c);
+    //eslint-disable-next-line
   }, []);
 
   useEffect(() => {
@@ -154,7 +155,7 @@ export default function Canvas({ roomState, showInfo, setShowInfo }) {
 
     if (
       roomState.gameStarted &&
-      roomState.players[roomState.turnIndex].socketId === socket.id
+      roomState.players[roomState.turnIndex]?.socketId === socket.id
     ) {
       socket.emit("brush-change", {
         brushWidth,
@@ -164,7 +165,17 @@ export default function Canvas({ roomState, showInfo, setShowInfo }) {
     }
 
     setCtx(c);
-  }, [color, isEraser, brushWidth]);
+  }, [
+    color,
+    isEraser,
+    brushWidth,
+    roomState.name,
+    roomState.players,
+    roomState.turnIndex,
+    ctx,
+    socket,
+    roomState.gameStarted,
+  ]);
 
   function changeColor(clr) {
     setIsEraser(false);

@@ -33,7 +33,7 @@ export default function GuessAndChat({
       setDidGuess(true);
       setNotifs((prevState) => [
         ...prevState,
-        { message: "you guessed the word !", type: "imp-notif" },
+        { message: "you guessed the word !", type: "guess-notif" },
       ]);
       const guessData = {
         roomName: roomState.name,
@@ -125,6 +125,9 @@ function Notification({ notif }) {
         );
       case "imp-notif":
         return <span className="text-pink-500 text-wrap">{notif.message}</span>;
+
+      case "guess-notif":
+        return <span className="text-blue-500 text-wrap">{notif.message}</span>;
 
       default:
         return null;

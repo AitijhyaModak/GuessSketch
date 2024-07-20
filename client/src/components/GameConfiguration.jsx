@@ -3,6 +3,17 @@ import Navbar from "./Navbar";
 import { SocketContext } from "../context/socket";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
+import ToastSuccess from "./ToastSuccess";
+import ToastError from "./ToastError";
+import { Howl } from "howler";
+import playerJoin from "../sounds/playerJoin.mp3";
+
+const customId = "a55sfewvs3/2";
+
+const joinSound = new Howl({
+  src: [playerJoin],
+  html5: true,
+});
 
 const emptyForm1 = {
   playerName: "",
@@ -11,6 +22,7 @@ const emptyForm1 = {
   totalPlayers: 2,
   rounds: 2,
 };
+
 const emptyForm2 = {
   roomName: "",
   password: "",
@@ -25,16 +37,27 @@ export default function GameConfiguration({
   const [formData1, setFormData1] = useState(emptyForm1);
   const [formData2, setFormData2] = useState(emptyForm2);
 
-  const handleSubmit = (e, type) => {
+  function handleSubmit(e, type) {
     e.preventDefault();
 
     if (formData1.playerName === "") {
-      toast.error("Username is required !!");
+      toast.custom(
+        (t) => <ToastError message="username is required" t={t}></ToastError>,
+        { id: customId }
+      );
       return;
     }
 
     if (formData1.playerName.length < 3) {
-      toast.error("Username must be atleast 3 letters long !!");
+      toast.custom(
+        (t) => (
+          <ToastError
+            message="username must be atleast 3 characters long"
+            t={t}
+          ></ToastError>
+        ),
+        { id: customId }
+      );
       return;
     }
 
@@ -42,7 +65,15 @@ export default function GameConfiguration({
 
     if (type === "create") {
       if (formData1.roomName === "" || formData1.password === "") {
-        toast.error("Credentials cannot be empty !!");
+        toast.custom(
+          (t) => (
+            <ToastError
+              message="credentials cannot be empty !!"
+              t={t}
+            ></ToastError>
+          ),
+          { id: customId }
+        );
         return;
       }
 
@@ -50,7 +81,15 @@ export default function GameConfiguration({
       setFormData1(emptyForm1);
     } else {
       if (formData2.roomName === "" || formData2.password === "") {
-        toast.error("Credentials cannot be empty !!");
+        toast.custom(
+          (t) => (
+            <ToastError
+              message="credentials cannot be empty !!"
+              t={t}
+            ></ToastError>
+          ),
+          { id: customId }
+        );
         return;
       }
 
@@ -60,29 +99,50 @@ export default function GameConfiguration({
       });
       setFormData2(emptyForm2);
     }
-  };
+  }
 
   useEffect(() => {
-    socket.on("success-created-room", (roomData) => {
-      toast.custom((t) => (
-        <SuccessToast message={"Room created and joined"} t={t}></SuccessToast>
-      ));
+    function handleSuccessCreatedRoom(roomData) {
+      toast.custom(
+        (t) => (
+          <ToastSuccess
+            t={t}
+            message="succesfully created and joined room"
+          ></ToastSuccess>
+        ),
+        { id: customId }
+      );
+      joinSound.play();
       setInRoom(true);
       setRoomState(roomData);
-    });
+    }
 
-    socket.on("success-joined-room", (roomData) => {
-      toast.custom((t) => {
-        <SuccessToast message={"Room joined"} t={t}></SuccessToast>;
-      });
+    function handleSuccessJoinedRoom(roomData) {
+      toast.custom(
+        (t) => (
+          <ToastSuccess t={t} message="succesfully joined room"></ToastSuccess>
+        ),
+        { id: customId }
+      );
+      joinSound.play();
       setInRoom(true);
       setRoomState(roomData);
-    });
+    }
 
-    socket.on("error", (message) => {
-      toast.custom((t) => <ErrorToast message={message} t={t}></ErrorToast>);
-    });
-  }, [socket]);
+    function handleError(message) {
+      toast.custom((t) => <ToastError t={t} message={message}></ToastError>);
+    }
+
+    socket.on("success-created-room", handleSuccessCreatedRoom);
+    socket.on("success-joined-room", handleSuccessJoinedRoom);
+    socket.on("error", handleError);
+
+    return () => {
+      socket.off("success-created-room", handleSuccessCreatedRoom);
+      socket.off("success-joined-room", handleSuccessJoinedRoom);
+      socket.off("error", handleError);
+    };
+  }, [socket, setInRoom, setRoomState]);
 
   return (
     <>
@@ -189,29 +249,5 @@ export default function GameConfiguration({
         </form>
       </div>
     </>
-  );
-}
-
-function SuccessToast({ message, t }) {
-  return (
-    <div
-      className={`bg-black text-green-500 py-4 rounded-lg px-4 opacity:60 ${
-        t.visible ? "animate-enter" : "animate-leave"
-      }`}
-    >
-      Room created and joined
-    </div>
-  );
-}
-
-function ErrorToast({ message, t }) {
-  return (
-    <div
-      className={`bg-black text-red-500 py-4 rounded-lg px-4 opacity:60 ${
-        t.visible ? "animate-enter" : "animate-leave"
-      }`}
-    >
-      {message}
-    </div>
   );
 }
