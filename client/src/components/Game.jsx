@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { SocketContext } from "../context/socket";
 import Canvas from "./Canvas";
 import PlayersList from "./PlayerList";
@@ -55,7 +55,7 @@ export default function Game({ roomState, setRoomState, username, setInRoom }) {
     socket.on("room-update", (data) => {
       setRoomState(data.roomData);
     });
-  }, [socket]);
+  }, [socket, setRoomState]);
 
   function DisplayInformationBetweenTurns() {
     setShowInfo(true);
@@ -138,15 +138,32 @@ function Word({ word, players, turnIndex, id }) {
 }
 
 function Timer({ setShowWord, roomName, socket, id, word, time, setTime }) {
+  const savedCallback = useRef();
+  const startTimeRef = useRef(Date.now());
+
+  useEffect(() => {
+    savedCallback.current = () => {
+      const currentTime = Date.now();
+      const elapsedTime = Math.floor(
+        (currentTime - startTimeRef.current) / 1000
+      );
+      const newTime = time - elapsedTime;
+
+      if (newTime <= 0) {
+        setShowWord(false);
+        if (socket.id === id) socket.emit("time-finish", { roomName, word });
+        setTime(0);
+      } else setTime(newTime);
+
+      startTimeRef.current = currentTime;
+    };
+  }, [time, setTime, setShowWord, roomName, socket, id, word]);
+
   useEffect(() => {
     const intervalId = setInterval(() => {
-      if (time <= 0) {
-        setShowWord(false);
-        if (socket.id == id) socket.emit("time-finish", { roomName, word });
-        return;
-      }
-      setTime(time - 1);
+      if (savedCallback.current) savedCallback.current();
     }, 1000);
+
     return () => clearInterval(intervalId);
   }, [time]);
 
