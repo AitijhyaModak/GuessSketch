@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 export default function HowToPlay() {
   return (
-    <div>
+    <div className="font-quicksand">
       <Navbar></Navbar>
 
       <div className="w-fit mx-auto curs">

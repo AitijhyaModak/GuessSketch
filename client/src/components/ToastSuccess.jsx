@@ -1,9 +1,11 @@
 export default function ToastSuccess({ message, t }) {
   return (
-    <div className="w-fit px-5 py-3 bg-black font-semibold text-green-500 border-2 border-green-500">
+    <div
+      className={`w-fit px-5 py-3 bg-black font-semibold text-green-500 border-2 border-green-500 ${
+        t.visible ? "animate-enter" : "animate-exit"
+      }`}
+    >
       {message}
     </div>
   );
 }
-
-//t.visible ? "animate-enter" : "animate-leave"
