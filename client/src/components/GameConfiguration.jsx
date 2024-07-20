@@ -43,7 +43,7 @@ export default function GameConfiguration({
     if (formData1.playerName === "") {
       toast.custom(
         (t) => <ToastError message="username is required" t={t}></ToastError>,
-        { id: customId }
+        { id: customId, duration: 3000 }
       );
       return;
     }
@@ -56,7 +56,7 @@ export default function GameConfiguration({
             t={t}
           ></ToastError>
         ),
-        { id: customId }
+        { id: customId, duration: 3000 }
       );
       return;
     }
@@ -72,7 +72,7 @@ export default function GameConfiguration({
               t={t}
             ></ToastError>
           ),
-          { id: customId }
+          { id: customId, duration: 3000 }
         );
         return;
       }
@@ -88,7 +88,7 @@ export default function GameConfiguration({
               t={t}
             ></ToastError>
           ),
-          { id: customId }
+          { id: customId, duration: 3000 }
         );
         return;
       }
@@ -110,7 +110,7 @@ export default function GameConfiguration({
             message="succesfully created and joined room"
           ></ToastSuccess>
         ),
-        { id: customId }
+        { id: customId, duration: 3000 }
       );
       joinSound.play();
       setInRoom(true);
@@ -122,7 +122,7 @@ export default function GameConfiguration({
         (t) => (
           <ToastSuccess t={t} message="succesfully joined room"></ToastSuccess>
         ),
-        { id: customId }
+        { id: customId, duration: 3000 }
       );
       joinSound.play();
       setInRoom(true);
@@ -130,7 +130,10 @@ export default function GameConfiguration({
     }
 
     function handleError(message) {
-      toast.custom((t) => <ToastError t={t} message={message}></ToastError>);
+      toast.custom((t) => <ToastError t={t} message={message}></ToastError>, {
+        duration: 3000,
+        id: customId,
+      });
     }
 
     socket.on("success-created-room", handleSuccessCreatedRoom);
