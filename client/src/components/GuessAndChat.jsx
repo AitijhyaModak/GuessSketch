@@ -64,7 +64,7 @@ export default function GuessAndChat({
     };
     setNotifs((prevState) => [...prevState, notif]);
     setTyped("");
-    notif.senderName = username;
+    notif.username = username;
     socket.emit("notif", notif);
   };
 
